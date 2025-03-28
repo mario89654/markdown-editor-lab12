@@ -1,23 +1,27 @@
 document.addEventListener("DOMContentLoaded", () => {
     const previewBtn = document.querySelector("#previewBtn");
     const contrastBtn = document.querySelector("#contrastBtn");
-    const clearBtn = document.createElement("button");
-    const fileInput = document.createElement("input");
-    const exportPdfBtn = document.createElement("button");
+    const clearBtn = document.querySelector("#clearBtn");
+    const fileInput = document.querySelector("#fileInput");
+    const loadFileBtn = document.querySelector("#loadFileBtn");
+    const exportPdfBtn = document.querySelector("#exportPdfBtn");
+    const cancelBtn = document.querySelector("#cancelBtn");
     const markdownInput = document.querySelector("#editor");
     const previewSection = document.querySelector("#preview");
     const charCount = document.querySelector("#charCount");
-    const wordCount = document.createElement("p");
-
+    
+    let wordCount = document.createElement("p");
     wordCount.id = "wordCount";
     wordCount.classList.add("text-gray-500", "text-sm", "mt-1");
     charCount.insertAdjacentElement("afterend", wordCount);
 
     let isContrastApplied = false;
+    let exportTimeout = null;
 
     const editorPlaceholder = "Escribí tu código Markdown aquí...";
     const previewPlaceholder = "Vista previa de HTML";
 
+    // Si el editor está vacío, se muestra un placeholder
     if (!markdownInput.value.trim()) {
         markdownInput.value = editorPlaceholder;
         markdownInput.classList.add("text-gray-500");
@@ -43,7 +47,6 @@ document.addEventListener("DOMContentLoaded", () => {
         charCount.textContent = `Caracteres: ${text.length}`;
         wordCount.textContent = `Palabras: ${text ? text.split(/\s+/).filter(word => word.length > 0).length : 0}`;
     }
-    markdownInput.addEventListener("input", updateCounts);
 
     function convertToHtml(markdown) {
         return marked.parse(markdown);
@@ -53,15 +56,15 @@ document.addEventListener("DOMContentLoaded", () => {
         previewSection.innerHTML = htmlContent || `<p class="text-gray-500 text-sm">${previewPlaceholder}</p>`;
     }
 
-    previewBtn.addEventListener("click", () => {
+    // Actualizar la vista previa automáticamente cuando se escribe
+    markdownInput.addEventListener("input", () => {
+        updateCounts();
         renderPreview(convertToHtml(markdownInput.value));
     });
 
-    //  Botón para limpiar el editor
-    clearBtn.textContent = "Limpiar";
-    clearBtn.id = "clearBtn";
-    clearBtn.classList.add("bg-red-500", "text-white", "px-4", "py-2", "rounded", "mt-2", "transition-all", "duration-300", "hover:bg-red-400");
-    markdownInput.insertAdjacentElement("afterend", clearBtn);
+    previewBtn.addEventListener("click", () => {
+        renderPreview(convertToHtml(markdownInput.value));
+    });
 
     clearBtn.addEventListener("click", () => {
         markdownInput.value = "";
@@ -69,18 +72,7 @@ document.addEventListener("DOMContentLoaded", () => {
         updateCounts();
     });
 
-    // Botón para cargar archivos Markdown
-    fileInput.type = "file";
-    fileInput.accept = ".md";
-    fileInput.classList.add("hidden");
-
-    const loadFileBtn = document.createElement("button");
-    loadFileBtn.textContent = "Cargar Markdown";
-    loadFileBtn.classList.add("bg-purple-500", "text-white", "px-4", "py-2", "rounded", "mt-2", "transition-all", "duration-300", "hover:bg-purple-400");
-
-    document.querySelector("header").appendChild(loadFileBtn);
-    document.querySelector("header").appendChild(fileInput);
-
+    // Cargar archivos Markdown
     loadFileBtn.addEventListener("click", () => fileInput.click());
 
     fileInput.addEventListener("change", async (event) => {
@@ -100,28 +92,31 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    //  Botón para exportar a PDF
-    exportPdfBtn.textContent = "Exportar a PDF";
-    exportPdfBtn.classList.add("bg-green-500", "text-white", "px-4", "py-2", "rounded-lg", "transition-all", "duration-300", "hover:bg-green-600");
-
-    document.querySelector("header").appendChild(exportPdfBtn);
-
-    exportPdfBtn.addEventListener("click", async () => {
+    // Simular tiempo de carga aleatorio en la exportación
+    exportPdfBtn.addEventListener("click", () => {
         exportPdfBtn.disabled = true;
         exportPdfBtn.textContent = "Exportando...";
-        
-        try {
-            await new Promise((resolve) => setTimeout(resolve, 2000));
+        cancelBtn.classList.remove("hidden");
+
+        const delay = Math.floor(Math.random() * 5000) + 1000; // Entre 1s y 6s
+        exportTimeout = setTimeout(() => {
             alert("PDF exportado con éxito");
-        } catch (error) {
-            console.error("Error al exportar PDF:", error);
-            alert("No se pudo generar el PDF");
-        } finally {
             exportPdfBtn.disabled = false;
             exportPdfBtn.textContent = "Exportar a PDF";
+            cancelBtn.classList.add("hidden");
+        }, delay);
+    });
+
+    // Cancelar operación
+    cancelBtn.addEventListener("click", () => {
+        if (exportTimeout) {
+            clearTimeout(exportTimeout);
+            exportPdfBtn.disabled = false;
+            exportPdfBtn.textContent = "Exportar a PDF";
+            alert("Operación cancelada");
+            cancelBtn.classList.add("hidden");
         }
     });
 
     updateCounts();
 });
-
